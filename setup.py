@@ -19,8 +19,21 @@ except ImportError:
     from distutils.core import setup
     from distutils.command import build_ext
 
+from distutils.util import get_platform
 from distutils.core import Extension
 
+from distutils.command.build import build
+from setuptools.command.install import install
+
+class CustomBuild(build):
+    def run(self):
+        self.run_command('build_ext')
+        build.run(self)
+
+class CustomInstall(install):
+    def run(self):
+        self.run_command('build_ext')
+        self.do_egg_install()
 
 class _M2CryptoBuildExt(build_ext.build_ext):
     '''Specialization of build_ext to enable swig_opts to inherit any 
@@ -49,12 +62,17 @@ class _M2CryptoBuildExt(build_ext.build_ext):
 
         build_ext.build_ext.finalize_options(self)
 
-        opensslIncludeDir = os.path.join(self.openssl, 'include')
+        includeDir = os.path.join(self.openssl, 'include')
+        opensslIncludeDir = os.path.join(self.openssl, 'include', 'openssl')
         opensslLibraryDir = os.path.join(self.openssl, 'lib')
         
         self.swig_opts = ['-I%s' % i for i in self.include_dirs + \
-                          [opensslIncludeDir]]
-        self.swig_opts.append('-includeall')
+                          [opensslIncludeDir, includeDir]]
+        if get_platform() == 'linux-x86_64':
+            self.swig_opts.append('-D__x86_64__')
+        self.swig_opts.append('-outdir')
+        self.swig_opts.append(os.path.join(os.getcwd(),'M2Crypto'))
+        #self.swig_opts.append('-includeall')
         #self.swig_opts.append('-D__i386__') # Uncomment for early OpenSSL 0.9.7 versions, or on Fedora Core if build fails
         #self.swig_opts.append('-DOPENSSL_NO_EC') # Try uncommenting if you can't build with EC disabled
         
@@ -127,7 +145,7 @@ if sys.version_info < (2,4):
     build_ext.build_ext.swig_sources = swig_sources
 
 
-m2crypto = Extension(name = 'M2Crypto.__m2crypto',
+m2crypto = Extension(name = 'M2Crypto._m2crypto',
                      sources = ['SWIG/_m2crypto.i'],
                      extra_compile_args = ['-DTHREADING'],
                      #extra_link_args = ['-Wl,-search_paths_first'], # Uncomment to build Universal Mac binaries
@@ -164,5 +182,5 @@ used to provide SSL for Twisted.''',
 
       ext_modules = [m2crypto],
       test_suite='tests.alltests.suite',
-      cmdclass = {'build_ext': _M2CryptoBuildExt}
+      cmdclass = {'build': CustomBuild, 'install': CustomInstall, 'build_ext': _M2CryptoBuildExt}
       )

@@ -17,9 +17,9 @@ if __name__ == "__main__":
     os.path.walk(start, zap, "/*.pyc")
 
     if os.name == 'nt':
-        zap_m2 = ("__m2cryptoc.pyd","_m2crypto.py")
+        zap_m2 = ("_m2cryptoc.pyd","m2crypto.py")
     elif os.name == 'posix':
-        zap_m2 = ("__m2crypto.so","_m2crypto.py")
+        zap_m2 = ("_m2crypto.so","m2crypto.py")
     for x in zap_m2:
         try:
             os.remove("%s/M2Crypto/%s" % (start, x))
