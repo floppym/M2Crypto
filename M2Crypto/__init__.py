@@ -19,7 +19,7 @@ Copyright 2008-2011 Heikki Toivonen. All rights reserved.
 version_info = (0, 22)
 version = '.'.join([str(_v) for _v in version_info])
 
-import __m2crypto
+import m2crypto
 import m2
 import ASN1
 import AuthCookie
@@ -47,4 +47,4 @@ import m2xmlrpclib
 import threading
 import util
 
-__m2crypto.lib_init()
+m2crypto.lib_init()

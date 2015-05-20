@@ -2,7 +2,11 @@
 *~
 /build
 /dist
-/SWIG/_m2crypto.py
+/M2Crypto/m2crypto.py
+/M2Crypto/_m2crypto*.so
+/SWIG/m2crypto.py
 /SWIG/_m2crypto_wrap.c
+/SWIG/_ec.i
+/SWIG/_evp.i
 /M2Crypto.egg-info
 /EGG-INFO

@@ -17,9 +17,22 @@ import os, sys, platform
 from setuptools import setup
 from setuptools.command import build_ext
 
+from distutils.util import get_platform
 from distutils.core import Extension
 from distutils.spawn import find_executable
 
+from distutils.command.build import build
+from setuptools.command.install import install
+
+class CustomBuild(build):
+    def run(self):
+        self.run_command('build_ext')
+        build.run(self)
+
+class CustomInstall(install):
+    def run(self):
+        self.run_command('build_ext')
+        self.do_egg_install()
 
 class _M2CryptoBuildExt(build_ext.build_ext):
     '''Specialization of build_ext to enable swig_opts to inherit any
@@ -70,11 +83,12 @@ class _M2CryptoBuildExt(build_ext.build_ext):
 
         self.add_multiarch_paths()
 
-        opensslIncludeDir = os.path.join(self.openssl, 'include')
+        includeDir = os.path.join(self.openssl, 'include')
+        opensslIncludeDir = os.path.join(self.openssl, 'include', 'openssl')
         opensslLibraryDir = os.path.join(self.openssl, 'lib')
 
         self.swig_opts = ['-I%s' % i for i in self.include_dirs + \
-                          [opensslIncludeDir, os.path.join(opensslIncludeDir, "openssl")]]
+                          [opensslIncludeDir, includeDir]]
         self.swig_opts.append('-includeall')
         self.swig_opts.append('-modern')
 
@@ -84,6 +98,9 @@ class _M2CryptoBuildExt(build_ext.build_ext):
                 self.swig_opts.append('-D__x86_64__')
             elif platform.architecture()[0] == '32bit':
                 self.swig_opts.append('-D__i386__')
+
+        self.swig_opts.append('-outdir')
+        self.swig_opts.append(os.path.join(os.getcwd(),'M2Crypto'))
 
         self.include_dirs += [os.path.join(self.openssl, opensslIncludeDir),
                               os.path.join(os.getcwd(), 'SWIG')]
@@ -103,7 +120,7 @@ if sys.platform == 'darwin':
 else:
    my_extra_compile_args = []
 
-m2crypto = Extension(name = 'M2Crypto.__m2crypto',
+m2crypto = Extension(name = 'M2Crypto._m2crypto',
                      sources = ['SWIG/_m2crypto.i'],
                      extra_compile_args = ['-DTHREADING'] + my_extra_compile_args,
                      #extra_link_args = ['-Wl,-search_paths_first'], # Uncomment to build Universal Mac binaries
@@ -145,5 +162,5 @@ interface.''',
 
       ext_modules = [m2crypto],
       test_suite='tests.alltests.suite',
-      cmdclass = {'build_ext': _M2CryptoBuildExt}
+      cmdclass = {'build': CustomBuild, 'install': CustomInstall, 'build_ext': _M2CryptoBuildExt}
       )
