@@ -32,7 +32,7 @@ class CustomBuild(build):
 class CustomInstall(install):
     def run(self):
         self.run_command('build_ext')
-        self.do_egg_install()
+        install.run(self)
 
 class _M2CryptoBuildExt(build_ext.build_ext):
     '''Specialization of build_ext to enable swig_opts to inherit any
@@ -81,29 +81,19 @@ class _M2CryptoBuildExt(build_ext.build_ext):
 
         build_ext.build_ext.finalize_options(self)
 
-        self.add_multiarch_paths()
-
         includeDir = os.path.join(self.openssl, 'include')
         opensslIncludeDir = os.path.join(self.openssl, 'include', 'openssl')
         opensslLibraryDir = os.path.join(self.openssl, 'lib')
 
-        self.swig_opts = ['-I%s' % i for i in self.include_dirs + \
-                          [opensslIncludeDir, includeDir]]
+        eprefix = os.getenv('EPREFIX', '')
+        self.swig_opts = ['-I' + eprefix + '/usr/include']
         self.swig_opts.append('-includeall')
         self.swig_opts.append('-modern')
-
-        # Fedora does hat tricks.
-        if platform.linux_distribution()[0] in ['Fedora', 'CentOS']:
-            if platform.architecture()[0] == '64bit':
-                self.swig_opts.append('-D__x86_64__')
-            elif platform.architecture()[0] == '32bit':
-                self.swig_opts.append('-D__i386__')
 
         self.swig_opts.append('-outdir')
         self.swig_opts.append(os.path.join(os.getcwd(),'M2Crypto'))
 
-        self.include_dirs += [os.path.join(self.openssl, opensslIncludeDir),
-                              os.path.join(os.getcwd(), 'SWIG')]
+        self.include_dirs += [os.path.join(os.getcwd(), 'SWIG')]
 
         if sys.platform == 'cygwin':
             # Cygwin SHOULD work (there's code in distutils), but
@@ -112,8 +102,6 @@ class _M2CryptoBuildExt(build_ext.build_ext):
             # Cygwin directly, then it would work even without this change.
             # Someday distutils will be fixed and this won't be needed.
             self.library_dirs += [os.path.join(self.openssl, 'bin')]
-
-        self.library_dirs += [os.path.join(self.openssl, opensslLibraryDir)]
 
 if sys.platform == 'darwin':
    my_extra_compile_args = ["-Wno-deprecated-declarations"]
